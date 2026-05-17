@@ -1,0 +1,13 @@
+startProgram
+variables:
+    int outer = 2;
+    int inner = 2;
+code:
+    loopif outer > 0 holds
+        inner = 2;
+        loopif inner > 0 holds
+            inner = inner - 1;
+        endloop
+        outer = outer - 1;
+    endloop
+endProgram

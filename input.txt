@@ -1,0 +1,12 @@
+startProgram 
+variables: 
+    int abc = 3; 
+    float xyz = 4.5; 
+    int result = 0; 
+code: 
+    result = abc + xyz; 
+    loopif abc > 0 holds
+        abc = abc - 1;
+    endloop
+    outString(result); 
+endProgram

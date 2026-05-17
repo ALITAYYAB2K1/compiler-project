@@ -1,0 +1,117 @@
+options { 
+    STATIC = false; 
+    MULTI = true;     
+    VISITOR = true;   
+}
+
+PARSER_BEGIN(CLParser)
+public class CLParser {
+    public static void main(String[] args) {
+        try {
+            CLParser parser = new CLParser(System.in);
+            ASTProgram root = parser.Program(); 
+            System.out.println("Phase 1 Complete: Syntax Parsed & AST Built Successfully!");
+            // In the future, we will call SemanticAnalyzer here and pass it the 'root'
+        } catch (Exception e) {
+            System.out.println("Syntax Error: " + e.getMessage());
+        }
+    }
+}
+PARSER_END(CLParser)
+
+SKIP : { " " | "\t" | "\n" | "\r" }
+
+TOKEN : {
+  <START: "startProgram"> | <END: "endProgram"> | <VARS: "variables:"> | <CODE: "code:">
+| <INT: "int"> | <STR: "string"> | <FLOAT: "float"> | <CHAR: "char"> 
+| <SWITCH: "switchFor"> | <CASE: "case"> | <OTHER: "other:">
+| <ENDSWITCH: "endswitchFor"> | <LOOPIF: "loopif"> | <HOLDS: "holds"> | <ENDLOOP: "endloop">
+| <OUT: "outString"> | <EQ: "=="> | <NEQ: "<>"> | <LE: "<="> | <GE: ">="> 
+| <GT: ">"> | <LT: "<"> | <ASSIGN: "=">
+| <PLUS: "+"> | <MINUS: "-"> | <MUL: "*"> | <DIV: "/"> | <SEMI: ";"> | <COLON: ":">
+| <LPAREN: "("> | <RPAREN: ")">
+| <IDENTIFIER: ["a"-"z","A"-"Z"](["a"-"z","A"-"Z","0"-"9"])*>
+| <INTEGER: (["0"-"9"])+>
+| <FLOAT_LITERAL: (["0"-"9"])+ "." (["0"-"9"])+> 
+| <STRING_LITERAL: "\"" (~["\""])* "\"">
+| <CHAR_LITERAL: "'" (~["'"]) "'">
+}
+
+// --- PARSER RULES (AST GENERATION) ---
+
+ASTProgram Program() #Program : {} { 
+    <START> <VARS> (VarDecl())* <CODE> (Statement())* <END> <EOF> 
+    { return jjtThis; } 
+}
+
+void VarDecl() #VarDecl : { Token t, id; String type; } {
+    (t=<INT>|t=<STR>|t=<FLOAT>|t=<CHAR>) { type = t.image; } 
+    id=<IDENTIFIER> <ASSIGN> Expression() <SEMI>
+    { 
+        // We save both the type and the variable name to be used by the Symbol Table later
+        jjtThis.jjtSetValue(type + ":" + id.image); 
+    }
+}
+
+void Statement() #void : {} { 
+    Assignment() | SwitchFor() | LoopIf() | OutString() 
+}
+
+void Assignment() #Assignment : { Token id; } { 
+    id=<IDENTIFIER> <ASSIGN> Expression() <SEMI> 
+    { jjtThis.jjtSetValue(id.image); }
+}
+
+void SwitchFor() #SwitchFor : { Token t; } {
+    <SWITCH> <LPAREN> (t=<IDENTIFIER>|t=<INTEGER>|t=<STRING_LITERAL>) { jjtThis.jjtSetValue(t.image); } <RPAREN>
+    (<CASE> Constant() <COLON> (Statement())*)*
+    <OTHER> (Statement())* <ENDSWITCH>
+}
+
+void LoopIf() #LoopIf : {} { 
+    <LOOPIF> CondExpr() <HOLDS> (Statement())* <ENDLOOP> 
+}
+
+void OutString() #OutString : {} { 
+    <OUT> <LPAREN> Expression() <RPAREN> <SEMI> 
+}
+
+// Creates clean binary nodes for conditions
+void CondExpr() #void : {} { 
+    Expression() (
+        <LE> Expression() #LessThanEqual(2)
+      | <GE> Expression() #GreaterThanEqual(2)
+      | <EQ> Expression() #Equal(2)
+      | <NEQ> Expression() #NotEqual(2)
+      | <GT> Expression() #GreaterThan(2)
+      | <LT> Expression() #LessThan(2)
+    )
+}
+
+// Creates clean binary nodes for addition/subtraction
+void Expression() #void : {} { 
+    Term() ( 
+        <PLUS> Term() #Add(2)
+      | <MINUS> Term() #Subtract(2)
+    )* }
+
+// Creates clean binary nodes for multiplication/division
+void Term() #void : {} { 
+    Factor() ( 
+        <MUL> Factor() #Multiply(2)
+      | <DIV> Factor() #Divide(2)
+    )* }
+
+void Factor() #Factor : { Token t; } {
+      t=<IDENTIFIER> { jjtThis.jjtSetValue(t.image); } 
+    | t=<INTEGER> { jjtThis.jjtSetValue(t.image); }
+    | t=<FLOAT_LITERAL> { jjtThis.jjtSetValue(t.image); }
+    | t=<STRING_LITERAL> { jjtThis.jjtSetValue(t.image); }
+    | t=<CHAR_LITERAL> { jjtThis.jjtSetValue(t.image); }
+    | <LPAREN> Expression() <RPAREN>
+}
+
+void Constant() #Constant : { Token t; } { 
+      t=<INTEGER> { jjtThis.jjtSetValue(t.image); }
+    | t=<STRING_LITERAL> { jjtThis.jjtSetValue(t.image); }
+}

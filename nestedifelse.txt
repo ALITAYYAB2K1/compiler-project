@@ -1,0 +1,21 @@
+startProgram
+variables:
+    int accountType = 1;
+    int status = 2;
+    int discount = 0;
+code:
+    switchFor(accountType)
+    case 1:
+        switchFor(status)
+        case 2:
+            discount = 50;
+        other:
+            discount = 10;
+        endswitchFor
+    case 2:
+        discount = 5;
+    other:
+        discount = 0;
+    endswitchFor
+    outString(discount);
+endProgram
