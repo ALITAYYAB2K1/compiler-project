@@ -9,7 +9,7 @@ It successfully handles nested `loopif` statements and nested `switchFor` condit
 Ensure your files are organized exactly like this before running any commands:
 
 ```text
-COMPILER ASSIGNMENT 2/
+COMPILER PROJECT/
 │
 ├── frontend/
 │   ├── CLParser.jjt        (The core grammar and AST logic)
