@@ -19,7 +19,7 @@ public class CodeGenerator implements CLParserVisitor {
             return String.format("%-8s | %-8s | %-8s | %-8s", op, arg1, arg2, result);
         }
 
-        // Formats it for the Equation View (Like Image 1)
+        // Formats it for the Equation View
         public String toEquation() {
             if (op.equals("Label")) return result + ":";
             if (op.equals("goto")) return "goto " + result;
@@ -29,6 +29,52 @@ public class CodeGenerator implements CLParserVisitor {
             if (op.equals("=")) return result + " = " + arg1;
             if (arg2.isEmpty()) return result + " = " + op + " " + arg1; // Handles the unary "minus"
             return result + " = " + arg1 + " " + op + " " + arg2;
+        }
+
+        // --- NEW: BINARY FORMAT HELPERS ---
+        
+        // Maps operators to 8-bit opcodes
+        private String getOpcode(String operator) {
+            switch(operator) {
+                case "+": return "00000001";
+                case "-": return "00000010";
+                case "*": return "00000011";
+                case "/": return "00000100";
+                case "=": return "00000101";
+                case "minus": return "00000110";
+                case "ifFalse": return "00000111";
+                case "goto": return "00001000";
+                case "==": return "00001001";
+                case "<": return "00001010";
+                case ">": return "00001011";
+                case "<=": return "00001100";
+                case ">=": return "00001101";
+                case "<>": return "00001110";
+                case "print": return "00001111";
+                case "Label": return "11111111";
+                default: return "00000000";
+            }
+        }
+
+        // Converts strings (like "t1" or "abc") to binary string representation
+        private String toBin(String s) {
+            if (s == null || s.isEmpty()) return "00000000";
+            StringBuilder b = new StringBuilder();
+            for (char c : s.toCharArray()) {
+                b.append(String.format("%8s", Integer.toBinaryString(c)).replace(' ', '0'));
+            }
+            return b.toString();
+        }
+
+        // Formats it for the Binary View (Line by Line)
+        public String toBinary() {
+            String opBin = getOpcode(op);
+            String arg1Bin = toBin(arg1);
+            String arg2Bin = toBin(arg2.replace("goto ", ""));
+            String resBin = toBin(result.replace("goto ", ""));
+            
+            if (op.equals("Label")) return resBin + ":";
+            return opBin + " " + arg1Bin + " " + arg2Bin + " " + resBin;
         }
     }
 
@@ -174,7 +220,7 @@ public class CodeGenerator implements CLParserVisitor {
         return null;
     }
 
-    // --- PRINT BOTH FORMATS ---
+    // --- PRINT ALL THREE FORMATS ---
     public void printInstructions() {
         System.out.println("\n============= 3AC (EQUATION FORMAT) =============");
         for (Quadruple q : instructions) {
@@ -182,6 +228,16 @@ public class CodeGenerator implements CLParserVisitor {
                 System.out.println("  " + q.toEquation());
             } else {
                 System.out.println("\n" + q.toEquation()); 
+            }
+        }
+
+        // --- NEW: THE BINARY OUTPUT LOOP ---
+        System.out.println("\n============= 3AC (BINARY FORMAT) ===============");
+        for (Quadruple q : instructions) {
+            if (!q.op.equals("Label")) {
+                System.out.println("  " + q.toBinary());
+            } else {
+                System.out.println("\n" + q.toBinary()); 
             }
         }
 
